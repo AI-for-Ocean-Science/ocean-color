@@ -153,7 +153,9 @@ def load_iop_l2(fn: str):
 
     Returns:
         xds (xr.Dataset): The xarray dataset containing the loaded data.
-            Variables include 'a', 'bb', 'aph', 'adg_s', 'adg_442'.
+            Variables include 'a', 'bb', 'aph', 'adg_s', 'adg_442',
+            'bbp_442', 'bbp_unc_442', 'bbp_s', and — when present in the
+            file — 'aph_unc_442' and 'adg_unc_442'.
             Coordinates include 'latitude', 'longitude', 'wavelength'.
         flags (numpy.ndarray): The l2_flags data from the netCDF file.
     """
@@ -184,6 +186,13 @@ def load_iop_l2(fn: str):
         bbp_unc_442 = gd.variables['bbp_unc_442'][:]
         bbp_s = gd.variables['bbp_s'][:]
 
+        # Per-pixel aph/adg uncertainties at 442 nm (absent from some files)
+        unc_442 = {
+            name: gd.variables[name][:]
+            for name in ('aph_unc_442', 'adg_unc_442')
+            if name in gd.variables
+        }
+
     # Build dataset directly with all variables
     xds = xr.Dataset(
         {
@@ -195,6 +204,7 @@ def load_iop_l2(fn: str):
             'bbp_442': (['x', 'y'], bbp_442),
             'bbp_unc_442': (['x', 'y'], bbp_unc_442),
             'bbp_s': (['x', 'y'], bbp_s),
+            **{name: (['x', 'y'], vals) for name, vals in unc_442.items()},
         },
         coords={
             'latitude': (['x', 'y'], lats),
